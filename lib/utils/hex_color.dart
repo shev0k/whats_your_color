@@ -11,7 +11,7 @@ class HexColor extends Color {
 
     // If the string is 6 characters long, assume it's an RGB hex color and add 'FF' at the start for full opacity
     if (hexColor.length == 6) {
-      hexColor = 'FF' + hexColor;
+      hexColor = 'FF$hexColor';
     }
 
     // Convert the hex string into an integer value and return it

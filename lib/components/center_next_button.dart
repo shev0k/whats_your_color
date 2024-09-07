@@ -103,7 +103,7 @@ class CenterNextButton extends StatelessWidget {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    'Sign Up',
+                                    'Continue',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 18,
@@ -131,7 +131,7 @@ class CenterNextButton extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.only(top: 40),
+            padding: const EdgeInsets.only(top: 45),
             child: SlideTransition(
               position: loginTextMoveAnimation,
               child: const Row(

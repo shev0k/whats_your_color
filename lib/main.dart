@@ -28,7 +28,7 @@ void main() async {
 class MyApp extends StatelessWidget {
   final bool hasSeenIntroduction;
 
-  const MyApp({Key? key, required this.hasSeenIntroduction}) : super(key: key);
+  const MyApp({super.key, required this.hasSeenIntroduction});
 
   @override
   Widget build(BuildContext context) {
