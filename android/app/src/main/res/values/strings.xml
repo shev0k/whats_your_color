@@ -1,4 +1,4 @@
 <resources>
-    <string name="service_name">NFC Service</string>
-    <string name="aid_group_description">NFC AID Group</string>
+    <string name="servicedesc">NFC Service</string>
+    <string name="aiddescription">NFC AID Description</string>
 </resources>
