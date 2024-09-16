@@ -1,14 +1,15 @@
-import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:whats_your_color/themes/app_theme.dart';
-import 'package:whats_your_color/components/color_picker_view.dart';
+import 'package:whats_your_color/components/views/home_screen_views/color_picker_view.dart';
 import 'package:whats_your_color/components/top_navigation_bar.dart';
-import 'package:whats_your_color/views/interaction_view.dart';
-import 'package:whats_your_color/views/statistics_view.dart';
-import 'package:http/http.dart' as http;
+import 'package:whats_your_color/components/views/home_screen_views/interaction_view.dart';
+import 'package:whats_your_color/components/views/home_screen_views/statistics_view.dart';
+import 'package:whats_your_color/services/home_screen/user_service.dart';
+import 'package:whats_your_color/services/home_screen/color_service.dart';
+import 'package:whats_your_color/services/home_screen/heartbeat_service.dart';
 
+// home screen widget
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -16,19 +17,26 @@ class HomeScreen extends StatefulWidget {
   HomeScreenState createState() => HomeScreenState();
 }
 
+// state class for home screen
 class HomeScreenState extends State<HomeScreen>
     with WidgetsBindingObserver, TickerProviderStateMixin {
+  
+  // animations and state variables
   late AnimationController _animationController;
   Color? selectedColor;
   bool isLoading = true;
   String currentView = 'colorPicker';
   String? userId;
-  Timer? _heartbeatTimer;
+  
+  late UserService _userService;
+  late ColorService _colorService;
+  HeartbeatService? _heartbeatService;
 
   @override
   void initState() {
     super.initState();
 
+    // setup lifecycle observer and animations
     WidgetsBinding.instance.addObserver(this);
 
     _animationController = AnimationController(
@@ -36,139 +44,92 @@ class HomeScreenState extends State<HomeScreen>
       vsync: this,
     );
 
-    _loadUserId();
-    _loadSelectedColor();
-    _animationController.forward();
-
-    _startHeartbeat();
+    // preload SharedPreferences synchronously
+    SharedPreferences.getInstance().then((prefs) {
+      _userService = UserService(prefs, baseUrl: 'https://whats-your-color.onrender.com');
+      _colorService = ColorService(prefs, baseUrl: 'https://whats-your-color.onrender.com');
+      _initData();
+    });
   }
+
+  Future<void> _initData() async {
+    userId = await _userService.loadUserId();
+    selectedColor = await _colorService.loadSelectedColor();
+
+    if (mounted) {
+      setState(() {
+        isLoading = false;
+      });
+      _animationController.forward(); // Start animation after data load
+
+      if (userId != null) {
+        await _userService.registerUser(userId, color: selectedColor);
+        _heartbeatService = HeartbeatService(userId: userId!, baseUrl: 'https://whats-your-color.onrender.com');
+        _heartbeatService?.startHeartbeat();
+      } else {
+        await _userService.registerUser(null, color: selectedColor);
+        userId = await _userService.loadUserId();
+      }
+
+      if (selectedColor != null && userId != null) {
+        await _colorService.sendColorToServer(selectedColor!, userId!);
+      }
+    }
+  }
+
 
   @override
   void dispose() {
-    _deregisterUser();
+    // clean up observers, animations, and timers
+    if (userId != null) {
+      _userService.deregisterUser(userId!);
+    }
+    _heartbeatService?.stopHeartbeat();
     WidgetsBinding.instance.removeObserver(this);
     _animationController.dispose();
-    _stopHeartbeat();
     super.dispose();
   }
 
-  void _loadUserId() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? savedUserId = prefs.getString('user_id');
-
-    if (savedUserId != null) {
-      userId = savedUserId;
-      _registerUser(userId!);
-    } else {
-      _registerUser();
-    }
-  }
-
-  void _registerUser([String? existingUserId]) async {
-    try {
-      final response = await http.post(
-        Uri.parse('http://192.168.0.104:3000/api/register'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'userId': existingUserId}),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        userId = data['userId'];
-
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString('user_id', userId!);
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // handle app state changes
+    if (state == AppLifecycleState.paused) {
+      if (selectedColor != null && userId != null) {
+        _colorService.saveSelectedColor(selectedColor!);
       }
-    } catch (e) {
-      print('Failed to register user: $e');
-    }
-  }
-
-  void _deregisterUser() async {
-    if (userId == null) return;
-
-    try {
-      await http.post(
-        Uri.parse('http://192.168.0.104:3000/api/deregister'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'userId': userId}),
-      );
-    } catch (e) {
-      print('Failed to deregister user: $e');
-    }
-  }
-
-  void _loadSelectedColor() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    int? savedColorValue = prefs.getInt('selected_color');
-
-    setState(() {
-      if (savedColorValue != null) {
-        selectedColor = Color(savedColorValue);
+    } else if (state == AppLifecycleState.resumed) {
+      if (selectedColor != null && userId != null) {
+        _colorService.sendColorToServer(selectedColor!, userId!);
       }
-      isLoading = false;
-    });
-
-    if (selectedColor != null && userId != null) {
-      _sendColorToServer(selectedColor!, userId!);
     }
   }
 
-  void _saveSelectedColor(Color color) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('selected_color', color.value);
-  }
-
-  void _sendColorToServer(Color color, String userId) async {
-    try {
-      await http.post(
-        Uri.parse('http://192.168.0.104:3000/api/color'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'userId': userId, 'color': color.value.toString()}),
-      );
-    } catch (e) {
-      print('Failed to send color to server: $e');
-    }
-  }
-
-  void _sendHeartbeat() async {
-    if (userId == null) return;
-
-    try {
-      await http.post(
-        Uri.parse('http://192.168.0.104:3000/api/heartbeat'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'userId': userId}),
-      );
-    } catch (e) {
-      print('Failed to send heartbeat: $e');
-    }
-  }
-
-  void _startHeartbeat() {
-    _heartbeatTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
-      _sendHeartbeat();
-    });
-  }
-
-  void _stopHeartbeat() {
-    _heartbeatTimer?.cancel();
-  }
-
+  // handle color selection
   void _onColorSelected(Color color) {
     setState(() {
-      selectedColor = color;  // Visually update the selected color
+      selectedColor = color;  // update the selected color
     });
   }
 
-  void _onSaveColorPressed() {
-    if (selectedColor != null && userId != null) {
-      _saveSelectedColor(selectedColor!);
-      _sendColorToServer(selectedColor!, userId!);
+  // handle save color button press
+  void _onSaveColorPressed() async {
+    if (selectedColor != null) {
+      if (userId == null) {
+        // Register the user for the first time
+        await _userService.registerUser(null, color: selectedColor);
+        userId = await _userService.loadUserId();
+      }
+
+      if (userId != null) {
+        // Save and send the selected color after user registration
+        await _colorService.saveSelectedColor(selectedColor!);
+        await _colorService.sendColorToServer(selectedColor!, userId!);
+      }
     }
   }
 
-  // Navigation callbacks
+
+  // navigation callbacks for different views
   void _navigateToInteraction() {
     setState(() {
       currentView = 'interaction';
@@ -187,6 +148,7 @@ class HomeScreenState extends State<HomeScreen>
     });
   }
 
+  // build the main UI
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
@@ -208,18 +170,19 @@ class HomeScreenState extends State<HomeScreen>
     }
   }
 
+  // build the current view based on navigation
   Widget _buildCurrentView() {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 930),
       transitionBuilder: (Widget child, Animation<double> animation) {
-        // Adding a CurvedAnimation with an interval
+        // smooth transition between views
         final curvedAnimation = CurvedAnimation(
           parent: animation,
           curve: const Interval(0.0, 1.0, curve: Curves.fastOutSlowIn),
         );
 
         final slideAnimation = Tween<Offset>(
-          begin: const Offset(4.0, 0.0), // Slide in from right
+          begin: const Offset(4.0, 0.0), // slide in from right
           end: Offset.zero,
         ).animate(curvedAnimation);
 
@@ -240,18 +203,19 @@ class HomeScreenState extends State<HomeScreen>
     );
   }
 
+  // get the view to display based on the current navigation state
   Widget _getViewForCurrentView() {
     switch (currentView) {
       case 'interaction':
         return InteractionView(
           animationController: _animationController,
           selectedColor: selectedColor,
-          key: ValueKey<String>(currentView), // Provide a unique key for each view
+          key: ValueKey<String>(currentView),
         );
       case 'statistics':
         return StatisticsView(
           animationController: _animationController,
-          key: ValueKey<String>(currentView), // Provide a unique key for each view
+          key: ValueKey<String>(currentView),
         );
       default:
         return ColorPickerView(
@@ -259,7 +223,7 @@ class HomeScreenState extends State<HomeScreen>
           onColorSelected: _onColorSelected,
           onSaveColorPressed: _onSaveColorPressed,
           selectedColor: selectedColor,
-          key: ValueKey<String>(currentView), // Provide a unique key for each view
+          key: ValueKey<String>(currentView),
         );
     }
   }

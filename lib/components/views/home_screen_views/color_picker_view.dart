@@ -8,24 +8,23 @@ class ColorPickerView extends StatefulWidget {
   final Function onSaveColorPressed;
 
   const ColorPickerView({
-    Key? key,
+    super.key,
     required this.onColorSelected,
     required this.animationController,
     required this.onSaveColorPressed,
     this.selectedColor,
-  }) : super(key: key);
+  });
 
   @override
-  _ColorPickerViewState createState() => _ColorPickerViewState();
+  ColorPickerViewState createState() => ColorPickerViewState();
 }
 
-class _ColorPickerViewState extends State<ColorPickerView>
-    with TickerProviderStateMixin {
+class ColorPickerViewState extends State<ColorPickerView> with TickerProviderStateMixin {
   String? _userName;
-  late AnimationController _fadeController;
-  late Animation<double> _fadeAnimation;
-  late AnimationController _buttonAnimationController;
-  late Animation<Offset> _buttonAnimation;
+  late final AnimationController _fadeController;
+  late final Animation<double> _fadeAnimation;
+  late final AnimationController _buttonAnimationController;
+  late final Animation<Offset> _buttonAnimation;
 
   final Map<Color, List<String>> colorMeanings = {
     const Color.fromARGB(255, 156, 31, 22): ["passionate", "full of energy"],
@@ -48,6 +47,81 @@ class _ColorPickerViewState extends State<ColorPickerView>
     const Color.fromRGBO(233, 30, 99, 1): 'assets/introduction_animation/pink_paint.png',
     const Color.fromRGBO(0, 150, 136, 1): 'assets/introduction_animation/teal_paint.png',
   };
+
+  final List<Map<String, dynamic>> colorData = [
+    {
+      'color': const Color.fromARGB(255, 156, 31, 22),
+      'gradient': const LinearGradient(
+        colors: [Color.fromARGB(255, 163, 45, 37), Color.fromARGB(171, 56, 9, 5)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomCenter,
+      ),
+      'name': 'Red',
+    },
+    {
+      'color': const Color.fromRGBO(255, 152, 0, 1),
+      'gradient': const LinearGradient(
+        colors: [Color.fromRGBO(255, 115, 0, 1), Color.fromRGBO(83, 26, 0, 1)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomCenter,
+      ),
+      'name': 'Orange',
+    },
+    {
+      'color': const Color.fromARGB(255, 212, 193, 14),
+      'gradient': const LinearGradient(
+        colors: [Color.fromARGB(255, 255, 230, 0), Color.fromARGB(255, 116, 94, 0)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomCenter,
+      ),
+      'name': 'Yellow',
+    },
+    {
+      'color': const Color.fromARGB(255, 76, 175, 80),
+      'gradient': const LinearGradient(
+        colors: [Colors.green, Color.fromARGB(213, 24, 63, 26)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomCenter,
+      ),
+      'name': 'Green',
+    },
+    {
+      'color': const Color.fromARGB(255, 33, 150, 243),
+      'gradient': const LinearGradient(
+        colors: [Colors.blue, Color.fromARGB(255, 0, 59, 107)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomCenter,
+      ),
+      'name': 'Blue',
+    },
+    {
+      'color': const Color.fromARGB(255, 156, 39, 176),
+      'gradient': const LinearGradient(
+        colors: [Colors.purple, Color.fromARGB(255, 80, 0, 94)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomCenter,
+      ),
+      'name': 'Purple',
+    },
+    {
+      'color': const Color.fromRGBO(233, 30, 99, 1),
+      'gradient': const LinearGradient(
+        colors: [Color.fromARGB(255, 255, 41, 113), Color.fromARGB(255, 94, 14, 41)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomCenter,
+      ),
+      'name': 'Pink',
+    },
+    {
+      'color': const Color.fromRGBO(0, 150, 136, 1),
+      'gradient': const LinearGradient(
+        colors: [Colors.teal, Color.fromARGB(255, 0, 87, 78)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomCenter,
+      ),
+      'name': 'Teal',
+    },
+  ];
 
   @override
   void initState() {
@@ -75,7 +149,6 @@ class _ColorPickerViewState extends State<ColorPickerView>
     ));
 
     _loadUserName();
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _preloadImages();
       _startAnimations();
@@ -85,7 +158,6 @@ class _ColorPickerViewState extends State<ColorPickerView>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Schedule animation to start after the build phase
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.animationController.forward(from: 0.0);
     });
@@ -113,7 +185,7 @@ class _ColorPickerViewState extends State<ColorPickerView>
     }
   }
 
-  void _loadUserName() async {
+  Future<void> _loadUserName() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
       _userName = prefs.getString('user_name') ?? 'User';
@@ -121,7 +193,6 @@ class _ColorPickerViewState extends State<ColorPickerView>
   }
 
   void _preloadImages() {
-    final context = this.context;
     for (var imagePath in colorToImageMap.values) {
       precacheImage(AssetImage(imagePath), context);
     }
@@ -132,11 +203,9 @@ class _ColorPickerViewState extends State<ColorPickerView>
 
     if (widget.selectedColor?.value != color.value) {
       widget.onColorSelected(color);
-
       if (wasColorNull) {
         _buttonAnimationController.forward(from: 0.0);
       }
-
       _fadeController.forward(from: 0.0);
     }
   }
@@ -145,37 +214,21 @@ class _ColorPickerViewState extends State<ColorPickerView>
     final selectedColor = widget.selectedColor;
 
     if (selectedColor == null) {
-      return FadeTransition(
-        opacity: _fadeAnimation,
-        child: const Text(
-          'Tip: Choose a color to get started!',
-          style: TextStyle(
-            fontSize: 14.0,
-            color: Colors.white70,
-          ),
-          textAlign: TextAlign.center,
-        ),
+      return _buildFadeTransitionText(
+        'Tip: Choose a color to get started!',
       );
     }
 
     final feelings = colorMeanings.entries
         .firstWhere(
           (entry) => entry.key.value == selectedColor.value,
-          orElse: () => MapEntry(Colors.transparent, ["", ""]),
+          orElse: () => const MapEntry(Colors.transparent, ["", ""]),
         )
         .value;
 
     if (feelings.isEmpty) {
-      return FadeTransition(
-        opacity: _fadeAnimation,
-        child: const Text(
-          'No meaning found for this color.',
-          style: TextStyle(
-            fontSize: 14.0,
-            color: Colors.white70,
-          ),
-          textAlign: TextAlign.center,
-        ),
+      return _buildFadeTransitionText(
+        'No meaning found for this color.',
       );
     }
 
@@ -215,10 +268,23 @@ class _ColorPickerViewState extends State<ColorPickerView>
     );
   }
 
+  Widget _buildFadeTransitionText(String text) {
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 14.0,
+          color: Colors.white70,
+        ),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedColor = widget.selectedColor;
-
     final imagePath = selectedColor != null
         ? colorToImageMap[selectedColor] ??
             'assets/introduction_animation/white_paint.png'
@@ -248,105 +314,6 @@ class _ColorPickerViewState extends State<ColorPickerView>
       curve: const Interval(0.2, 0.4, curve: Curves.fastOutSlowIn),
     ));
 
-    final colorData = [
-      {
-        'color': const Color.fromARGB(255, 156, 31, 22),
-        'gradient': const LinearGradient(
-          colors: [
-            Color.fromARGB(255, 163, 45, 37),
-            Color.fromARGB(171, 56, 9, 5)
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomCenter,
-        ),
-        'name': 'Red'
-      },
-      {
-        'color': const Color.fromRGBO(255, 152, 0, 1),
-        'gradient': const LinearGradient(
-          colors: [
-            Color.fromRGBO(255, 115, 0, 1),
-            Color.fromRGBO(83, 26, 0, 1)
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomCenter,
-        ),
-        'name': 'Orange'
-      },
-      {
-        'color': const Color.fromARGB(255, 212, 193, 14),
-        'gradient': const LinearGradient(
-          colors: [
-            Color.fromARGB(255, 255, 230, 0),
-            Color.fromARGB(255, 116, 94, 0)
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomCenter,
-        ),
-        'name': 'Yellow'
-      },
-      {
-        'color': const Color.fromARGB(255, 76, 175, 80),
-        'gradient': const LinearGradient(
-          colors: [
-            Colors.green,
-            Color.fromARGB(213, 24, 63, 26),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomCenter,
-        ),
-        'name': 'Green'
-      },
-      {
-        'color': const Color.fromARGB(255, 33, 150, 243),
-        'gradient': const LinearGradient(
-          colors: [
-            Colors.blue,
-            Color.fromARGB(255, 0, 59, 107),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomCenter,
-        ),
-        'name': 'Blue'
-      },
-      {
-        'color': const Color.fromARGB(255, 156, 39, 176),
-        'gradient': const LinearGradient(
-          colors: [
-            Colors.purple,
-            Color.fromARGB(255, 80, 0, 94),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomCenter,
-        ),
-        'name': 'Purple'
-      },
-      {
-        'color': const Color.fromRGBO(233, 30, 99, 1),
-        'gradient': const LinearGradient(
-          colors: [
-            Color.fromARGB(255, 255, 41, 113),
-            Color.fromARGB(255, 94, 14, 41),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomCenter,
-        ),
-        'name': 'Pink'
-      },
-      {
-        'color': const Color.fromRGBO(0, 150, 136, 1),
-        'gradient': const LinearGradient(
-          colors: [
-            Colors.teal,
-            Color.fromARGB(255, 0, 87, 78),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomCenter,
-        ),
-        'name': 'Teal'
-      },
-    ];
-
     return Padding(
       padding: const EdgeInsets.only(left: 20, right: 20, top: 0, bottom: 25),
       child: Column(
@@ -358,7 +325,7 @@ class _ColorPickerViewState extends State<ColorPickerView>
             child: Container(
               constraints: const BoxConstraints(maxWidth: 350, maxHeight: 350),
               child: Image.asset(
-                imagePath, // Display the selected color's image or default
+                imagePath,
                 fit: BoxFit.contain,
               ),
             ),
@@ -385,82 +352,7 @@ class _ColorPickerViewState extends State<ColorPickerView>
             position: colorPickerAnimation,
             child: Column(
               children: [
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 45),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4,
-                    mainAxisSpacing: 15.0,
-                    childAspectRatio: 0.85,
-                  ),
-                  itemCount: colorData.length,
-                  itemBuilder: (context, index) {
-                    final color = colorData[index]['color'] as Color;
-                    final gradient =
-                        colorData[index]['gradient'] as LinearGradient;
-                    final colorName = colorData[index]['name'] as String;
-                    final isSelected =
-                        widget.selectedColor?.value == color.value;
-
-                    return GestureDetector(
-                      onTap: () => _onColorTap(color),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: gradient,
-                              boxShadow: isSelected
-                                  ? [
-                                      BoxShadow(
-                                        color: color.withOpacity(0.6),
-                                        blurRadius: 20,
-                                        spreadRadius: 7,
-                                      ),
-                                    ]
-                                  : [],
-                            ),
-                            width: 50,
-                            height: 50,
-                          ),
-                          const SizedBox(height: 5),
-                          Flexible(
-                            child: Text(
-                              colorName,
-                              style: TextStyle(
-                                fontSize: 12,
-                                foreground: isSelected
-                                    ? (Paint()
-                                      ..shader = LinearGradient(
-                                        colors: [
-                                          color,
-                                          color.withOpacity(0.6)
-                                        ],
-                                      ).createShader(const Rect.fromLTWH(
-                                          0.0, 0.0, 200.0, 70.0)))
-                                    : null,
-                                color: isSelected ? null : Colors.white70,
-                                shadows: isSelected
-                                    ? [
-                                        Shadow(
-                                          blurRadius: 15,
-                                          color: color.withOpacity(0.6),
-                                          offset: const Offset(0, 0),
-                                        ),
-                                      ]
-                                    : [],
-                              ),
-                              textAlign: TextAlign.center,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+                _buildColorPickerGrid(),
                 const SizedBox(height: 20),
                 // Color Meaning Text
                 FadeTransition(
@@ -478,33 +370,97 @@ class _ColorPickerViewState extends State<ColorPickerView>
           if (widget.selectedColor != null)
             SlideTransition(
               position: _buttonAnimation,
-              child: ElevatedButton(
-                onPressed: () {
-                  widget.onSaveColorPressed();  // Save the color only when the button is pressed
-                  _showColorSavedNotification(widget.selectedColor!);
-                },
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.black,
-                  backgroundColor: widget.selectedColor,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 80, vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
-                  shadowColor: Colors.black,
-                ),
-                child: const Text(
-                  "Save Color",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
+              child: _buildSaveColorButton(),
             ),
           const SizedBox(height: 40.0),
         ],
+      ),
+    );
+  }
+
+  Widget _buildColorPickerGrid() {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 45),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        mainAxisSpacing: 15.0,
+        childAspectRatio: 0.85,
+      ),
+      itemCount: colorData.length,
+      itemBuilder: (context, index) {
+        final color = colorData[index]['color'] as Color;
+        final gradient = colorData[index]['gradient'] as LinearGradient;
+        final colorName = colorData[index]['name'] as String;
+        final isSelected = widget.selectedColor?.value == color.value;
+
+        return GestureDetector(
+          onTap: () => _onColorTap(color),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: gradient,
+                  boxShadow: isSelected
+                      ? [BoxShadow(color: color.withOpacity(0.6), blurRadius: 20, spreadRadius: 7)]
+                      : [],
+                ),
+                width: 50,
+                height: 50,
+              ),
+              const SizedBox(height: 5),
+              Flexible(
+                child: Text(
+                  colorName,
+                  style: TextStyle(
+                    fontSize: 12,
+                    foreground: isSelected
+                        ? (Paint()
+                          ..shader = LinearGradient(
+                            colors: [color, color.withOpacity(0.6)],
+                          ).createShader(const Rect.fromLTWH(0.0, 0.0, 200.0, 70.0)))
+                        : null,
+                    color: isSelected ? null : Colors.white70,
+                    shadows: isSelected
+                        ? [Shadow(blurRadius: 15, color: color.withOpacity(0.6), offset: const Offset(0, 0))]
+                        : [],
+                  ),
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  ElevatedButton _buildSaveColorButton() {
+    return ElevatedButton(
+      onPressed: () {
+        widget.onSaveColorPressed();  // Save the color only when the button is pressed
+        _showColorSavedNotification(widget.selectedColor!);
+      },
+      style: ElevatedButton.styleFrom(
+        foregroundColor: Colors.black,
+        backgroundColor: widget.selectedColor,
+        padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 15),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.0),
+        ),
+        shadowColor: Colors.black,
+      ),
+      child: const Text(
+        "Save Color",
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 18,
+          fontWeight: FontWeight.w500,
+        ),
       ),
     );
   }
@@ -557,13 +513,7 @@ class _ColorPickerViewState extends State<ColorPickerView>
                 decoration: BoxDecoration(
                   color: color, // Use the selected color for the alert background
                   borderRadius: BorderRadius.circular(10),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black26,
-                      offset: Offset(0, 2),
-                      blurRadius: 6.0,
-                    ),
-                  ],
+                  boxShadow: const [BoxShadow(color: Colors.black26, offset: Offset(0, 2), blurRadius: 6.0)],
                 ),
                 child: const Row(
                   children: [

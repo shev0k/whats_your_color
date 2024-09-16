@@ -4,22 +4,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:whats_your_color/themes/app_theme.dart';
-import 'introduction_animation/introduction_animation_screen.dart';
+import 'screens/introduction_screen.dart';
 import 'screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Ensure the app runs only in portrait mode.
+  // app runs only in portrait mode.
   await SystemChrome.setPreferredOrientations(<DeviceOrientation>[
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  // Retrieve the SharedPreferences instance
+  // SharedPreferences instance
   SharedPreferences prefs = await SharedPreferences.getInstance();
 
-  // Check if the introduction animation has been seen
+  // check if introduction animation has been seen
   bool hasSeenIntroduction = prefs.getBool('hasSeenIntroduction') ?? false;
 
   runApp(MyApp(hasSeenIntroduction: hasSeenIntroduction));
@@ -32,7 +32,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Setting up system UI overlays based on platform and orientation.
+    // setting up system UI
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,

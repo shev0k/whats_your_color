@@ -3,25 +3,26 @@ import 'package:flutter/material.dart';
 class AppTheme {
   AppTheme._();
 
-  // Updated colors for AMOLED theme with lavender/purple accents
+  // AMOLED theme with lavender/purple accents
   static const Color notWhite = Color(0xFFEDF0F2);
   static const Color nearlyWhite = Color(0xFFFEFEFE);
   static const Color white = Color(0xFFFFFFFF);
-  static const Color nearlyBlack = Color.fromRGBO(10, 10, 10, 1); // Darker for AMOLED
-  static const Color grey = Color(0xFF2A2A2A); // Dark grey for AMOLED
-  static const Color dark_grey = Color(0xFF1A1A1A); // Even darker grey
+  static const Color nearlyBlack = Color.fromRGBO(10, 10, 10, 1);
+  static const Color grey = Color(0xFF2A2A2A);
+  // ignore: constant_identifier_names
+  static const Color dark_grey = Color(0xFF1A1A1A);
 
   // Accent colors
-  static const Color lavender = Color(0xFFB388FF); // Lavender accent
-  static const Color purple = Color(0xFF7C4DFF); // Purple accent
+  static const Color lavender = Color(0xFFB388FF);
+  static const Color purple = Color(0xFF7C4DFF);
 
-  static const Color darkText = Color(0xFFB0BEC5); // Lighter grey for text
-  static const Color darkerText = Color(0xFFECEFF1); // Nearly white for titles
-  static const Color lightText = Color(0xFFB3B3B3); // Light grey for secondary text
+  static const Color darkText = Color(0xFFB0BEC5);
+  static const Color darkerText = Color(0xFFECEFF1);
+  static const Color lightText = Color(0xFFB3B3B3);
   static const Color deactivatedText = Color(0xFF767676);
   static const Color dismissibleBackground = Color(0xFF37474F);
-  static const Color chipBackground = Color(0xFF263238); // Darker background for chips
-  static const Color spacer = Color(0xFF212121); // Spacer color closer to black
+  static const Color chipBackground = Color(0xFF263238);
+  static const Color spacer = Color(0xFF212121);
   static const String fontName = 'WorkSans';
 
   static const TextTheme textTheme = TextTheme(

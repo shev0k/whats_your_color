@@ -1,11 +1,11 @@
 import 'package:whats_your_color/themes/app_theme.dart';
-import '../components/care_view.dart';
+import '../components/views/introduction_screen_views/care_view.dart';
 import '../components/center_next_button.dart';
-import '../components/mood_diary_vew.dart';
-import '../components/relax_view.dart';
-import '../components/splash_view.dart';
-import '../components/top_back_skip_view.dart';
-import '../components/welcome_view.dart';
+import '../components/views/introduction_screen_views/mood_diary_vew.dart';
+import '../components/views/introduction_screen_views/relax_view.dart';
+import '../components/views/introduction_screen_views/splash_view.dart';
+import '../components/top_back_skip_bar.dart';
+import '../components/views/introduction_screen_views/welcome_view.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:whats_your_color/screens/home_screen.dart';
@@ -21,7 +21,7 @@ class IntroductionAnimationScreen extends StatefulWidget {
 class IntroductionAnimationScreenState
     extends State<IntroductionAnimationScreen> with TickerProviderStateMixin {
   AnimationController? _animationController;
-  TextEditingController _nameController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
 
   @override
   void initState() {
@@ -45,11 +45,14 @@ void _signUpClick() async {
     await prefs.setString('user_name', name);
     await prefs.setBool('hasSeenIntroduction', true);
 
-    // Navigate to the HomeScreen
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const HomeScreen()),
-    );
+    // Check if the widget is still mounted before navigating
+    if (mounted) {
+      // Navigate to the HomeScreen
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    }
   } else {
     // Show a prettier error or warning from the top
     OverlayEntry overlayEntry = OverlayEntry(
@@ -89,15 +92,15 @@ void _signUpClick() async {
       ),
     );
 
-    // Insert the OverlayEntry into the Overlay
     Overlay.of(context).insert(overlayEntry);
 
-    // Remove the overlay after a few seconds
+    // Optionally, you can remove the overlay after some time
     Future.delayed(const Duration(seconds: 3), () {
       overlayEntry.remove();
     });
   }
 }
+
 
 
 

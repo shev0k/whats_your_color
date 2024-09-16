@@ -8,18 +8,18 @@ class TopNavigationBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showBackButton;
 
   const TopNavigationBar({
-    Key? key,
+    super.key,
     required this.onBackPressed,
     required this.onInteractionPressed,
     required this.onStatisticsPressed,
     this.showBackButton = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: Colors.transparent, // Make the AppBar transparent
-      elevation: 0, // Remove shadow
+      backgroundColor: Colors.transparent, // AppBar transparent
+      elevation: 0, // remove shadow
       leading: showBackButton
           ? IconButton(
               icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),

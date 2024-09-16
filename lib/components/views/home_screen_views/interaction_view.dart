@@ -6,15 +6,15 @@ class InteractionView extends StatelessWidget {
   final Color? selectedColor;
 
   const InteractionView({
-    Key? key,
+    super.key,
     required this.animationController,
     required this.selectedColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     // Placeholder content
-    return Center(
+    return const Center(
       child: Text(
         'Interaction View - Under Development',
         style: TextStyle(color: Colors.white, fontSize: 18),
