@@ -4,12 +4,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ColorPickerView extends StatefulWidget {
   final Function(Color) onColorSelected;
   final AnimationController animationController;
-  final Color? selectedColor; // Added to receive the selected color
+  final Color? selectedColor;
+  final Function onSaveColorPressed;
 
   const ColorPickerView({
     Key? key,
     required this.onColorSelected,
     required this.animationController,
+    required this.onSaveColorPressed,
     this.selectedColor,
   }) : super(key: key);
 
@@ -51,7 +53,6 @@ class _ColorPickerViewState extends State<ColorPickerView>
   void initState() {
     super.initState();
 
-    // Initialize fade animation controller
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 500),
       vsync: this,
@@ -61,7 +62,6 @@ class _ColorPickerViewState extends State<ColorPickerView>
       curve: Curves.easeInOut,
     );
 
-    // Initialize button animation controller
     _buttonAnimationController = AnimationController(
       duration: const Duration(milliseconds: 500),
       vsync: this,
@@ -76,31 +76,26 @@ class _ColorPickerViewState extends State<ColorPickerView>
 
     _loadUserName();
 
-    // Preload images
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _preloadImages();
       _startAnimations();
     });
   }
 
-  // Start animations based on whether a color is selected
-  void _startAnimations() {
-    _fadeController.forward(from: 0.0);
-    if (widget.selectedColor != null) {
-      _buttonAnimationController.forward(from: 0.0);
-    }
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Schedule animation to start after the build phase
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.animationController.forward(from: 0.0);
+    });
   }
 
   @override
   void didUpdateWidget(ColorPickerView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.selectedColor != widget.selectedColor) {
-      setState(() {
-        _fadeController.forward(from: 0.0);
-        if (widget.selectedColor != null) {
-          _buttonAnimationController.forward(from: 0.0);
-        }
-      });
+      _startAnimations();
     }
   }
 
@@ -111,7 +106,13 @@ class _ColorPickerViewState extends State<ColorPickerView>
     super.dispose();
   }
 
-  // Load user name from SharedPreferences
+  void _startAnimations() {
+    _fadeController.forward(from: 0.0);
+    if (widget.selectedColor != null) {
+      _buttonAnimationController.forward(from: 0.0);
+    }
+  }
+
   void _loadUserName() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -119,7 +120,6 @@ class _ColorPickerViewState extends State<ColorPickerView>
     });
   }
 
-  // Preload images to improve performance
   void _preloadImages() {
     final context = this.context;
     for (var imagePath in colorToImageMap.values) {
@@ -127,12 +127,11 @@ class _ColorPickerViewState extends State<ColorPickerView>
     }
   }
 
-  // Handle color tap events
   void _onColorTap(Color color) {
     final wasColorNull = widget.selectedColor == null;
 
     if (widget.selectedColor?.value != color.value) {
-      widget.onColorSelected(color); // Notify parent to update the state
+      widget.onColorSelected(color);
 
       if (wasColorNull) {
         _buttonAnimationController.forward(from: 0.0);
@@ -142,7 +141,6 @@ class _ColorPickerViewState extends State<ColorPickerView>
     }
   }
 
-  // Build the text that describes the meaning of the selected color
   Widget _buildColorMeaningText() {
     final selectedColor = widget.selectedColor;
 
@@ -160,7 +158,6 @@ class _ColorPickerViewState extends State<ColorPickerView>
       );
     }
 
-    // Ensure the correct color key is used for matching
     final feelings = colorMeanings.entries
         .firstWhere(
           (entry) => entry.key.value == selectedColor.value,
@@ -222,13 +219,11 @@ class _ColorPickerViewState extends State<ColorPickerView>
   Widget build(BuildContext context) {
     final selectedColor = widget.selectedColor;
 
-    // Determine the correct image to display
     final imagePath = selectedColor != null
         ? colorToImageMap[selectedColor] ??
             'assets/introduction_animation/white_paint.png'
         : 'assets/introduction_animation/white_paint.png';
 
-    // Animations with staggered timing
     final welcomeImageAnimation = Tween<Offset>(
       begin: const Offset(4, 0),
       end: Offset.zero,
@@ -353,8 +348,7 @@ class _ColorPickerViewState extends State<ColorPickerView>
     ];
 
     return Padding(
-      padding:
-          const EdgeInsets.only(left: 20, right: 20, top: 0, bottom: 25),
+      padding: const EdgeInsets.only(left: 20, right: 20, top: 0, bottom: 25),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
@@ -362,8 +356,7 @@ class _ColorPickerViewState extends State<ColorPickerView>
           SlideTransition(
             position: welcomeImageAnimation,
             child: Container(
-              constraints:
-                  const BoxConstraints(maxWidth: 350, maxHeight: 350),
+              constraints: const BoxConstraints(maxWidth: 350, maxHeight: 350),
               child: Image.asset(
                 imagePath, // Display the selected color's image or default
                 fit: BoxFit.contain,
@@ -396,8 +389,7 @@ class _ColorPickerViewState extends State<ColorPickerView>
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   padding: const EdgeInsets.symmetric(horizontal: 45),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 4,
                     mainAxisSpacing: 15.0,
                     childAspectRatio: 0.85,
@@ -488,9 +480,8 @@ class _ColorPickerViewState extends State<ColorPickerView>
               position: _buttonAnimation,
               child: ElevatedButton(
                 onPressed: () {
-                  if (widget.selectedColor != null) {
-                    _showColorSavedNotification(widget.selectedColor!);
-                  }
+                  widget.onSaveColorPressed();  // Save the color only when the button is pressed
+                  _showColorSavedNotification(widget.selectedColor!);
                 },
                 style: ElevatedButton.styleFrom(
                   foregroundColor: Colors.black,
@@ -518,40 +509,75 @@ class _ColorPickerViewState extends State<ColorPickerView>
     );
   }
 
-  // Show an overlay notification when the color is saved
   void _showColorSavedNotification(Color color) {
-    // Show an overlay notification with the selected color
-    OverlayEntry overlayEntry = OverlayEntry(
+    late OverlayEntry overlayEntry;
+    bool isRemoved = false;
+
+    // To control the sliding and fading animations
+    final offset = ValueNotifier<Offset>(Offset.zero);
+    final opacity = ValueNotifier<double>(1.0);
+
+    overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
         top: MediaQuery.of(context).padding.top + 10, // Adjust for status bar
         left: 20,
         right: 20,
         child: Material(
           color: Colors.transparent,
-          child: Container(
-            padding: const EdgeInsets.all(15),
-            decoration: BoxDecoration(
-              color: color, // Use the selected color for the alert background
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black26,
-                  offset: Offset(0, 2),
-                  blurRadius: 6.0,
-                ),
-              ],
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    "Color saved successfully.",
-                    style: TextStyle(color: Colors.white),
+          child: GestureDetector(
+            onHorizontalDragUpdate: (details) {
+              // Update the offset based on user's drag
+              offset.value = Offset(offset.value.dx + details.delta.dx, 0);
+            },
+            onHorizontalDragEnd: (details) {
+              if (offset.value.dx.abs() > 100) {
+                // Remove the overlay if the drag is significant
+                if (!isRemoved) {
+                  overlayEntry.remove();
+                  isRemoved = true;
+                }
+              } else {
+                // Animate back to original position if drag was not enough
+                offset.value = Offset.zero;
+              }
+            },
+            child: AnimatedBuilder(
+              animation: Listenable.merge([offset, opacity]),
+              builder: (context, child) {
+                return Opacity(
+                  opacity: opacity.value,
+                  child: Transform.translate(
+                    offset: offset.value,
+                    child: child,
                   ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: color, // Use the selected color for the alert background
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black26,
+                      offset: Offset(0, 2),
+                      blurRadius: 6.0,
+                    ),
+                  ],
                 ),
-              ],
+                child: const Row(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.white),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        "Color saved successfully.",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -560,9 +586,18 @@ class _ColorPickerViewState extends State<ColorPickerView>
 
     Overlay.of(context).insert(overlayEntry);
 
-    // Remove the overlay after a few seconds
     Future.delayed(const Duration(seconds: 3), () {
-      overlayEntry.remove();
+      // Ensure the overlay is removed only once
+      if (!isRemoved) {
+        // Smooth fade-out effect before sliding out
+        opacity.value = 0.0;
+        offset.value = const Offset(300, 0); // Slide out to the right
+
+        Future.delayed(const Duration(milliseconds: 300), () {
+          overlayEntry.remove();
+          isRemoved = true;
+        });
+      }
     });
   }
 }
