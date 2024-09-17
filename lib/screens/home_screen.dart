@@ -24,6 +24,7 @@ class HomeScreenState extends State<HomeScreen>
   // animations and state variables
   late AnimationController _animationController;
   Color? selectedColor;
+  Color? savedColor; // Added to retain the saved color state
   bool isLoading = true;
   String currentView = 'colorPicker';
   String? userId;
@@ -55,12 +56,13 @@ class HomeScreenState extends State<HomeScreen>
   Future<void> _initData() async {
     userId = await _userService.loadUserId();
     selectedColor = await _colorService.loadSelectedColor();
+    savedColor = selectedColor; // set the saved color when initializing
 
     if (mounted) {
       setState(() {
         isLoading = false;
       });
-      _animationController.forward(); // Start animation after data load
+      _animationController.forward(); // start animation after data load
 
       if (userId != null) {
         await _userService.registerUser(userId, color: selectedColor);
@@ -76,7 +78,6 @@ class HomeScreenState extends State<HomeScreen>
       }
     }
   }
-
 
   @override
   void dispose() {
@@ -124,10 +125,19 @@ class HomeScreenState extends State<HomeScreen>
         // Save and send the selected color after user registration
         await _colorService.saveSelectedColor(selectedColor!);
         await _colorService.sendColorToServer(selectedColor!, userId!);
+        // Update the saved color
+        setState(() {
+          savedColor = selectedColor;
+        });
       }
     }
   }
 
+  // handle share color button press
+  void _onShareColorPressed() {
+    // Navigate to the InteractionView
+    _navigateToInteraction();
+  }
 
   // navigation callbacks for different views
   void _navigateToInteraction() {
@@ -165,7 +175,18 @@ class HomeScreenState extends State<HomeScreen>
           onStatisticsPressed: _navigateToStatistics,
           showBackButton: currentView != 'colorPicker',
         ),
-        body: _buildCurrentView(),
+        body: GestureDetector(
+          behavior: HitTestBehavior.deferToChild,
+          onHorizontalDragEnd: (details) {
+            if (currentView != 'colorPicker') {
+              if (details.primaryVelocity != null && details.primaryVelocity! > 300) {
+                // User swiped right
+                _navigateBack();
+              }
+            }
+          },
+          child: _buildCurrentView(),
+        ),
       );
     }
   }
@@ -222,7 +243,9 @@ class HomeScreenState extends State<HomeScreen>
           animationController: _animationController,
           onColorSelected: _onColorSelected,
           onSaveColorPressed: _onSaveColorPressed,
+          onShareColorPressed: _onShareColorPressed,
           selectedColor: selectedColor,
+          savedColor: savedColor,
           key: ValueKey<String>(currentView),
         );
     }

@@ -5,14 +5,18 @@ class ColorPickerView extends StatefulWidget {
   final Function(Color) onColorSelected;
   final AnimationController animationController;
   final Color? selectedColor;
+  final Color? savedColor;
   final Function onSaveColorPressed;
+  final Function onShareColorPressed;
 
   const ColorPickerView({
     super.key,
     required this.onColorSelected,
     required this.animationController,
     required this.onSaveColorPressed,
+    required this.onShareColorPressed,
     this.selectedColor,
+    this.savedColor,
   });
 
   @override
@@ -25,6 +29,8 @@ class ColorPickerViewState extends State<ColorPickerView> with TickerProviderSta
   late final Animation<double> _fadeAnimation;
   late final AnimationController _buttonAnimationController;
   late final Animation<Offset> _buttonAnimation;
+
+  Color? _savedColor;
 
   final Map<Color, List<String>> colorMeanings = {
     const Color.fromARGB(255, 156, 31, 22): ["passionate", "full of energy"],
@@ -123,9 +129,13 @@ class ColorPickerViewState extends State<ColorPickerView> with TickerProviderSta
     },
   ];
 
+  bool get isColorSaved => widget.selectedColor != null && widget.selectedColor == _savedColor;
+
   @override
   void initState() {
     super.initState();
+
+    _savedColor = widget.savedColor;
 
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 500),
@@ -202,12 +212,17 @@ class ColorPickerViewState extends State<ColorPickerView> with TickerProviderSta
     final wasColorNull = widget.selectedColor == null;
 
     if (widget.selectedColor?.value != color.value) {
-      widget.onColorSelected(color);
+      setState(() {
+        widget.onColorSelected(color);
+      });
       if (wasColorNull) {
         _buttonAnimationController.forward(from: 0.0);
       }
       _fadeController.forward(from: 0.0);
     }
+
+    // Update button visibility
+    setState(() {});
   }
 
   Widget _buildColorMeaningText() {
@@ -366,11 +381,16 @@ class ColorPickerViewState extends State<ColorPickerView> with TickerProviderSta
             ),
           ),
           const Spacer(),
-          // Save Color Button
+          // Save Color or Share Color Button
           if (widget.selectedColor != null)
             SlideTransition(
               position: _buttonAnimation,
-              child: _buildSaveColorButton(),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                child: isColorSaved
+                    ? _buildShareColorButton()
+                    : _buildSaveColorButton(),
+              ),
             ),
           const SizedBox(height: 40.0),
         ],
@@ -441,8 +461,10 @@ class ColorPickerViewState extends State<ColorPickerView> with TickerProviderSta
 
   ElevatedButton _buildSaveColorButton() {
     return ElevatedButton(
+      key: const ValueKey('saveButton'),
       onPressed: () {
         widget.onSaveColorPressed();  // Save the color only when the button is pressed
+        _onSaveColorPressed();
         _showColorSavedNotification(widget.selectedColor!);
       },
       style: ElevatedButton.styleFrom(
@@ -463,6 +485,38 @@ class ColorPickerViewState extends State<ColorPickerView> with TickerProviderSta
         ),
       ),
     );
+  }
+
+  ElevatedButton _buildShareColorButton() {
+    return ElevatedButton(
+      key: const ValueKey('shareButton'),
+      onPressed: () {
+        widget.onShareColorPressed(); // Navigate to Interaction View
+      },
+      style: ElevatedButton.styleFrom(
+        foregroundColor: Colors.black,
+        backgroundColor: widget.selectedColor,
+        padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 15),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.0),
+        ),
+        shadowColor: Colors.black,
+      ),
+      child: const Text(
+        "Share Your Color!",
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 18,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
+  void _onSaveColorPressed() {
+    setState(() {
+      _savedColor = widget.selectedColor;
+    });
   }
 
   void _showColorSavedNotification(Color color) {
