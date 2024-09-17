@@ -10,12 +10,13 @@ class InteractionView extends StatefulWidget {
   final Color? selectedColor;
 
   const InteractionView({
-    Key? key,
+    super.key,
     required this.animationController,
     required this.selectedColor,
-  }) : super(key: key);
+  });
 
   @override
+  // ignore: library_private_types_in_public_api
   _InteractionViewState createState() => _InteractionViewState();
 }
 
@@ -38,8 +39,8 @@ class _InteractionViewState extends State<InteractionView>
 
   final List<Map<String, dynamic>> colorData = [
     {
-      'color': Color.fromARGB(255, 156, 31, 22),
-      'gradient': LinearGradient(
+      'color': const Color.fromARGB(255, 156, 31, 22),
+      'gradient': const LinearGradient(
         colors: [
           Color.fromARGB(255, 163, 45, 37),
           Color.fromARGB(171, 56, 9, 5)
@@ -50,8 +51,8 @@ class _InteractionViewState extends State<InteractionView>
       'name': 'Red',
     },
     {
-      'color': Color.fromRGBO(255, 152, 0, 1),
-      'gradient': LinearGradient(
+      'color': const Color.fromRGBO(255, 152, 0, 1),
+      'gradient': const LinearGradient(
         colors: [
           Color.fromRGBO(255, 115, 0, 1),
           Color.fromRGBO(83, 26, 0, 1)
@@ -62,8 +63,8 @@ class _InteractionViewState extends State<InteractionView>
       'name': 'Orange',
     },
     {
-      'color': Color.fromARGB(255, 212, 193, 14),
-      'gradient': LinearGradient(
+      'color': const Color.fromARGB(255, 212, 193, 14),
+      'gradient': const LinearGradient(
         colors: [
           Color.fromARGB(255, 255, 230, 0),
           Color.fromARGB(255, 116, 94, 0)
@@ -74,8 +75,8 @@ class _InteractionViewState extends State<InteractionView>
       'name': 'Yellow',
     },
     {
-      'color': Color.fromARGB(255, 76, 175, 80),
-      'gradient': LinearGradient(
+      'color': const Color.fromARGB(255, 76, 175, 80),
+      'gradient': const LinearGradient(
         colors: [Colors.green, Color.fromARGB(213, 24, 63, 26)],
         begin: Alignment.topLeft,
         end: Alignment.bottomCenter,
@@ -83,8 +84,8 @@ class _InteractionViewState extends State<InteractionView>
       'name': 'Green',
     },
     {
-      'color': Color.fromARGB(255, 33, 150, 243),
-      'gradient': LinearGradient(
+      'color': const Color.fromARGB(255, 33, 150, 243),
+      'gradient': const LinearGradient(
         colors: [Colors.blue, Color.fromARGB(255, 0, 59, 107)],
         begin: Alignment.topLeft,
         end: Alignment.bottomCenter,
@@ -92,8 +93,8 @@ class _InteractionViewState extends State<InteractionView>
       'name': 'Blue',
     },
     {
-      'color': Color.fromARGB(255, 156, 39, 176),
-      'gradient': LinearGradient(
+      'color': const Color.fromARGB(255, 156, 39, 176),
+      'gradient': const LinearGradient(
         colors: [Colors.purple, Color.fromARGB(255, 80, 0, 94)],
         begin: Alignment.topLeft,
         end: Alignment.bottomCenter,
@@ -101,8 +102,8 @@ class _InteractionViewState extends State<InteractionView>
       'name': 'Purple',
     },
     {
-      'color': Color.fromRGBO(233, 30, 99, 1),
-      'gradient': LinearGradient(
+      'color': const Color.fromRGBO(233, 30, 99, 1),
+      'gradient': const LinearGradient(
         colors: [
           Color.fromARGB(255, 255, 41, 113),
           Color.fromARGB(255, 94, 14, 41)
@@ -113,8 +114,8 @@ class _InteractionViewState extends State<InteractionView>
       'name': 'Pink',
     },
     {
-      'color': Color.fromRGBO(0, 150, 136, 1),
-      'gradient': LinearGradient(
+      'color': const Color.fromRGBO(0, 150, 136, 1),
+      'gradient': const LinearGradient(
         colors: [Colors.teal, Color.fromARGB(255, 0, 87, 78)],
         begin: Alignment.topLeft,
         end: Alignment.bottomCenter,
@@ -212,8 +213,6 @@ class _InteractionViewState extends State<InteractionView>
 
   Future<void> _startNfcHce() async {
     if (!_isNfcHceRunning) {
-      var result = await _flutterNfcHcePlugin.startNfcHce(_selectedColorHex);
-      print('NFC HCE started with result: $result');
 
       setStateIfMounted(() {
         _isNfcHceRunning = true;
