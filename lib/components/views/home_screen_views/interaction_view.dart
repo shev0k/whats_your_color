@@ -10,28 +10,173 @@ class InteractionView extends StatefulWidget {
   final Color? selectedColor;
 
   const InteractionView({
-    super.key,
+    Key? key,
     required this.animationController,
     required this.selectedColor,
-  });
+  }) : super(key: key);
 
   @override
   _InteractionViewState createState() => _InteractionViewState();
 }
 
-class _InteractionViewState extends State<InteractionView> {
+class _InteractionViewState extends State<InteractionView>
+    with TickerProviderStateMixin {
   final _flutterNfcHcePlugin = FlutterNfcHce();
   final AudioPlayer _audioPlayer = AudioPlayer();
   String _selectedColorHex = '#FFFFFF';
   bool _isNfcHceRunning = false;
   bool _isNfcReading = false;
-  ValueNotifier<dynamic> _nfcResult = ValueNotifier(null);
   bool _isColorMatch = false;
+  bool _hasRead = false;
+  Color? _otherColor;
+
+  late AnimationController _pulsateController;
+  late Animation<double> _pulsateAnimation;
+
+  late AnimationController _colorCycleController;
+  late Animation<Color?> _colorCycleAnimation;
+
+  final List<Map<String, dynamic>> colorData = [
+    {
+      'color': Color.fromARGB(255, 156, 31, 22),
+      'gradient': LinearGradient(
+        colors: [
+          Color.fromARGB(255, 163, 45, 37),
+          Color.fromARGB(171, 56, 9, 5)
+        ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomCenter,
+      ),
+      'name': 'Red',
+    },
+    {
+      'color': Color.fromRGBO(255, 152, 0, 1),
+      'gradient': LinearGradient(
+        colors: [
+          Color.fromRGBO(255, 115, 0, 1),
+          Color.fromRGBO(83, 26, 0, 1)
+        ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomCenter,
+      ),
+      'name': 'Orange',
+    },
+    {
+      'color': Color.fromARGB(255, 212, 193, 14),
+      'gradient': LinearGradient(
+        colors: [
+          Color.fromARGB(255, 255, 230, 0),
+          Color.fromARGB(255, 116, 94, 0)
+        ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomCenter,
+      ),
+      'name': 'Yellow',
+    },
+    {
+      'color': Color.fromARGB(255, 76, 175, 80),
+      'gradient': LinearGradient(
+        colors: [Colors.green, Color.fromARGB(213, 24, 63, 26)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomCenter,
+      ),
+      'name': 'Green',
+    },
+    {
+      'color': Color.fromARGB(255, 33, 150, 243),
+      'gradient': LinearGradient(
+        colors: [Colors.blue, Color.fromARGB(255, 0, 59, 107)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomCenter,
+      ),
+      'name': 'Blue',
+    },
+    {
+      'color': Color.fromARGB(255, 156, 39, 176),
+      'gradient': LinearGradient(
+        colors: [Colors.purple, Color.fromARGB(255, 80, 0, 94)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomCenter,
+      ),
+      'name': 'Purple',
+    },
+    {
+      'color': Color.fromRGBO(233, 30, 99, 1),
+      'gradient': LinearGradient(
+        colors: [
+          Color.fromARGB(255, 255, 41, 113),
+          Color.fromARGB(255, 94, 14, 41)
+        ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomCenter,
+      ),
+      'name': 'Pink',
+    },
+    {
+      'color': Color.fromRGBO(0, 150, 136, 1),
+      'gradient': LinearGradient(
+        colors: [Colors.teal, Color.fromARGB(255, 0, 87, 78)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomCenter,
+      ),
+      'name': 'Teal',
+    },
+  ];
 
   @override
   void initState() {
     super.initState();
     _loadSelectedColor();
+
+    _pulsateController = AnimationController(
+      duration: const Duration(seconds: 3),
+      vsync: this,
+    )..repeat(reverse: true);
+    _pulsateAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
+      CurvedAnimation(parent: _pulsateController, curve: Curves.easeInOut),
+    );
+
+    _colorCycleController = AnimationController(
+      duration: const Duration(seconds: 12),
+      vsync: this,
+    );
+
+    _colorCycleAnimation = _colorCycleController.drive(
+      TweenSequence<Color?>(
+        [
+          TweenSequenceItem(
+            tween: ColorTween(begin: Colors.red, end: Colors.orange),
+            weight: 1,
+          ),
+          TweenSequenceItem(
+            tween: ColorTween(begin: Colors.orange, end: Colors.yellow),
+            weight: 1,
+          ),
+          TweenSequenceItem(
+            tween: ColorTween(begin: Colors.yellow, end: Colors.green),
+            weight: 1,
+          ),
+          TweenSequenceItem(
+            tween: ColorTween(begin: Colors.green, end: Colors.cyan),
+            weight: 1,
+          ),
+          TweenSequenceItem(
+            tween: ColorTween(begin: Colors.cyan, end: Colors.blue),
+            weight: 1,
+          ),
+          TweenSequenceItem(
+            tween: ColorTween(begin: Colors.blue, end: Colors.purple),
+            weight: 1,
+          ),
+          TweenSequenceItem(
+            tween: ColorTween(begin: Colors.purple, end: Colors.red),
+            weight: 1,
+          ),
+        ],
+      ),
+    );
+
+    _startColorCycling();
   }
 
   Future<void> _loadSelectedColor() async {
@@ -44,9 +189,17 @@ class _InteractionViewState extends State<InteractionView> {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       setStateIfMounted(() {
         _selectedColorHex =
-            prefs.getString('selected_color') ?? '#FFFFFF'; // Default to white
+            prefs.getString('selected_color') ?? '#FFFFFF';
       });
     }
+  }
+
+  void _startColorCycling() {
+    _colorCycleController.repeat();
+  }
+
+  void _stopColorCycling() {
+    _colorCycleController.stop();
   }
 
   Future<void> _toggleNfcHce() async {
@@ -64,8 +217,8 @@ class _InteractionViewState extends State<InteractionView> {
 
       setStateIfMounted(() {
         _isNfcHceRunning = true;
-        _isNfcReading = false; // Ensure NFC reading is stopped
-        _stopNfcReading(); // Stop reading if it's running
+        _isNfcReading = false;
+        _stopNfcReading();
       });
     }
   }
@@ -91,40 +244,42 @@ class _InteractionViewState extends State<InteractionView> {
     if (!_isNfcReading) {
       setStateIfMounted(() {
         _isNfcReading = true;
-        _isNfcHceRunning = false; // Ensure NFC HCE is stopped
-        _stopNfcHce(); // Stop HCE if it's running
+        _isNfcHceRunning = false;
+        _stopNfcHce();
+        _hasRead = false;
       });
 
       NfcManager.instance.startSession(
         onDiscovered: (NfcTag tag) async {
           final ndef = Ndef.from(tag);
           if (ndef == null) {
-            _nfcResult.value = 'Tag is not NDEF formatted';
+            _showErrorMessage('Tag is not NDEF formatted');
             return;
           }
 
           final payload = ndef.cachedMessage?.records.first.payload;
 
           if (payload != null && payload.isNotEmpty) {
-            final message = utf8.decode(payload.sublist(3)); // skip first 3 bytes for encoding info
-            _nfcResult.value = 'NFC Data: $message';
+            final message =
+                utf8.decode(payload.sublist(3));
 
-            setStateIfMounted(() {
-              _isColorMatch = _selectedColorHex.toUpperCase() == message.toUpperCase();
-              _playSound(_isColorMatch); // Play the appropriate sound
-            });
+            if (_isValidHexColor(message)) {
+              setStateIfMounted(() {
+                _otherColor = Color(int.parse(message.substring(1), radix: 16) + 0xFF000000);
+                _isColorMatch =
+                    _selectedColorHex.toUpperCase() == message.toUpperCase();
+                _hasRead = true;
+                _playSound(_isColorMatch);
+                _stopColorCycling();
+              });
+            } else {
+              _showErrorMessage('Invalid color data received.');
+            }
           } else {
-            _nfcResult.value = 'Empty payload';
-            setStateIfMounted(() {
-              _isColorMatch = false;
-              _playSound(_isColorMatch); // Play the sad sound
-            });
+            _showErrorMessage('Empty payload received.');
           }
 
-          // Stop the NFC session after processing
           await NfcManager.instance.stopSession();
-
-          // Prevent the NFC system app from launching again
           await _preventNfcSystemApp();
 
           setStateIfMounted(() {
@@ -145,7 +300,7 @@ class _InteractionViewState extends State<InteractionView> {
   }
 
   Future<void> _playSound(bool isMatch) async {
-    await _audioPlayer.stop(); // Stop any previous sound before playing a new one
+    await _audioPlayer.stop();
     if (isMatch) {
       await _audioPlayer.play(AssetSource('sounds/happy_sound.mp3'));
     } else {
@@ -167,59 +322,215 @@ class _InteractionViewState extends State<InteractionView> {
     }
   }
 
+  bool _isValidHexColor(String color) {
+    final hexColorRegExp = RegExp(r'^#[0-9A-Fa-f]{6}$');
+    return hexColorRegExp.hasMatch(color);
+  }
+
+  void _showErrorMessage(String message) {
+    setStateIfMounted(() {
+      _hasRead = true;
+      _isColorMatch = false;
+      _otherColor = null;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.redAccent,
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _stopNfcHce();
     _stopNfcReading();
-    _audioPlayer.dispose(); // Dispose the audio player when the widget is disposed
+    _audioPlayer.dispose();
+    _pulsateController.dispose();
+    _colorCycleController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Interaction View'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-              onPressed: _toggleNfcHce,
-              child: Text(_isNfcHceRunning ? 'Stop NFC HCE' : 'Start NFC HCE'),
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _toggleNfcReading,
-              child: Text(_isNfcReading ? 'Stop NFC Reading' : 'Start NFC Reading'),
-            ),
-            SizedBox(height: 20),
-            ValueListenableBuilder<dynamic>(
-              valueListenable: _nfcResult,
-              builder: (context, value, _) => Text(
-                value != null ? 'NFC Result: $value' : 'Waiting for NFC...',
-                style: TextStyle(fontSize: 16),
+    final selectedColor = Color(
+        int.parse(_selectedColorHex.substring(1), radix: 16) + 0xFF000000);
+
+    final selectedGradient = colorData.firstWhere(
+      (element) => element['color'].value == selectedColor.value,
+      orElse: () => {
+        'gradient': LinearGradient(
+          colors: [selectedColor, selectedColor.withOpacity(0.6)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomCenter,
+        ),
+      },
+    )['gradient'] as LinearGradient;
+
+    return Container(
+      color: Colors.transparent,
+      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 50),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          const SizedBox(height: 20),
+
+          ScaleTransition(
+            scale: _pulsateAnimation,
+            child: GestureDetector(
+              onTap: _toggleNfcHce,
+              child: Container(
+                width: 200,
+                height: 200,
+                decoration: BoxDecoration(
+                  gradient: selectedGradient,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: selectedColor.withOpacity(0.6),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    ),
+                  ],
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Icon(
+                      _isNfcHceRunning ? Icons.stop : Icons.send,
+                      color: const Color.fromARGB(166, 255, 255, 255),
+                      size: 50,
+                    ),
+                  ],
+                ),
               ),
             ),
-            SizedBox(height: 20),
-            Text(
-              _isNfcHceRunning
-                  ? 'NFC HCE is running with value: $_selectedColorHex'
-                  : 'NFC HCE is stopped',
-              style: TextStyle(fontSize: 16),
+          ),
+          const SizedBox(height: 50),
+
+          Container(
+            height: 60,
+            alignment: Alignment.center,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 500),
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: child,
+                );
+              },
+              child: _hasRead
+                  ? RichText(
+                      key: ValueKey<bool>(_isColorMatch),
+                      textAlign: TextAlign.center,
+                      text: TextSpan(
+                        text: 'Colors ',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          color: Colors.white70,
+                        ),
+                        children: [
+                          TextSpan(
+                            text: _isColorMatch ? 'match' : 'do not match',
+                            style: TextStyle(
+                              color: _isColorMatch
+                                  ? selectedColor
+                                  : (_otherColor ?? Colors.white),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextSpan(
+                            text: _isColorMatch
+                                ? '! You share the same vibe.'
+                                : '. You don\'t share the same vibe.',
+                            style: const TextStyle(
+                              color: Colors.white70,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : Text(
+                      _isNfcReading
+                          ? "Receiving color... Tap phones."
+                          : _isNfcHceRunning
+                              ? "Sending color... Tap phones."
+                              : "Tap the circles to share or receive colors with other users!",
+                      key: ValueKey<String>(
+                          _isNfcReading || _isNfcHceRunning ? 'status' : 'instruction'),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.white70,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
             ),
-            Text(
-              _isNfcReading ? 'NFC Reading is active' : 'NFC Reading is inactive',
-              style: TextStyle(fontSize: 16),
-            ),
-            SizedBox(height: 20),
-            Text(
-              'Color Match: $_isColorMatch', // Display true/false based on color match
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 30),
+
+          AnimatedBuilder(
+            animation: _colorCycleAnimation,
+            builder: (context, child) {
+              Color currentColor =
+                  _otherColor ?? (_colorCycleAnimation.value ?? Colors.blue);
+
+              final currentGradient = _otherColor != null
+                  ? colorData.firstWhere(
+                      (element) => element['color'].value == currentColor.value,
+                      orElse: () => {
+                            'gradient': LinearGradient(
+                              colors: [currentColor, currentColor.withOpacity(0.6)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomCenter,
+                            ),
+                          },
+                    )['gradient'] as LinearGradient
+                  : LinearGradient(
+                      colors: [
+                        currentColor,
+                        currentColor.withOpacity(0.6),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomCenter,
+                    );
+
+              IconData currentIcon = _isNfcReading ? Icons.stop : Icons.download;
+
+              return ScaleTransition(
+                scale: _pulsateAnimation,
+                child: GestureDetector(
+                  onTap: _toggleNfcReading,
+                  child: Container(
+                    width: 200,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      gradient: currentGradient,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: currentColor.withOpacity(0.6),
+                          blurRadius: 20,
+                          spreadRadius: 5,
+                        ),
+                      ],
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Icon(
+                          currentIcon,
+                          color: const Color.fromARGB(164, 255, 255, 255),
+                          size: 50,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
